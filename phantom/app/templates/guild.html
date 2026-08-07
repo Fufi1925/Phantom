@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}{{ guild.name }} · {{ brand }}{% endblock %}
+{% block body %}
+<div class="shell">
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">◈</div>
+      <span>{{ brand }}</span>
+    </div>
+    <div class="nav-user">
+      {% if avatar_url %}<img src="{{ avatar_url }}" alt="" />{% endif %}
+      <span>{{ user.global_name or user.username }}</span>
+      <a class="btn btn-ghost" href="{{ root_path }}/dashboard">Server</a>
+      <a class="btn btn-ghost" href="{{ root_path }}/auth/logout">Logout</a>
+    </div>
+  </div>
+
+  <div class="layout">
+    <aside class="card side">
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px">
+        <div class="guild-icon" style="width:40px;height:40px">
+          {% if guild.icon %}
+          <img src="https://cdn.discordapp.com/icons/{{ guild.id }}/{{ guild.icon }}.png?size=128" alt="" />
+          {% else %}{{ (guild.name or '?')[0] }}{% endif %}
+        </div>
+        <div>
+          <strong style="display:block;font-size:14px">{{ guild.name }}</strong>
+          <span style="color:var(--muted);font-size:12px">Ticket Setup</span>
+        </div>
+      </div>
+      <a class="active" href="{{ root_path }}/dashboard/guild/{{ guild.id }}">Einstellungen</a>
+      <a href="{{ root_path }}/dashboard">← Alle Server</a>
+    </aside>
+
+    <main class="card panel">
+      <h2>Ticket-Einstellungen</h2>
+      <p class="sub">Wird vom Phantom-Bot gelesen. Nur für Server, auf denen der Bot Mitglied ist.</p>
+
+      <form class="form-grid" method="post" action="{{ root_path }}/dashboard/guild/{{ guild.id }}/save">
+        <label>
+          Panel-Titel
+          <input name="panel_title" value="{{ config.panel_title or 'Support Center' }}" maxlength="120" />
+        </label>
+        <label>
+          Panel-Beschreibung
+          <textarea name="panel_description" maxlength="1800">{{ config.panel_description or '' }}</textarea>
+        </label>
+        <label>
+          Panel-Kanal ID
+          <input name="panel_channel_id" placeholder="z.B. 123456789012345678" value="{{ config.panel_channel_id or '' }}" />
+        </label>
+        <label>
+          Log-Kanal ID
+          <input name="log_channel_id" placeholder="z.B. 123456789012345678" value="{{ config.log_channel_id or '' }}" />
+        </label>
+        <label>
+          Staff-Rollen IDs (JSON-Array)
+          <input name="staff_role_ids" value='{{ staff_role_ids_json }}' placeholder='[111,222]' />
+        </label>
+        <div class="row-actions">
+          <button class="btn btn-primary" type="submit">Speichern</button>
+          <a class="btn btn-ghost" href="{{ root_path }}/dashboard">← Zurück zur Übersicht</a>
+        </div>
+      </form>
+
+      <!-- LIVE OVERVIEW like Main Bot -->
+      <div style="margin: 32px 0 12px; padding-top: 18px; border-top: 1px solid var(--line);">
+        <h2 style="margin-bottom:8px">Live Übersicht</h2>
+        <div class="stats-row" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); margin-bottom: 18px;">
+          <div class="card stat">
+            <div class="stat-val">{{ live_stats.open_tickets or 0 }}</div>
+            <div class="stat-label">Offene Tickets</div>
+          </div>
+          <div class="card stat">
+            <div class="stat-val">{{ live_stats.total_tickets or 0 }}</div>
+            <div class="stat-label">Tickets gesamt</div>
+          </div>
+          <div class="card stat">
+            <div class="stat-val">{{ (live_stats.recent_tickets | length) or 0 }}</div>
+            <div class="stat-label">Zuletzt aktiv</div>
+          </div>
+        </div>
+      </div>
+
+      <h2 style="margin-top: 12px">Aktuelle Tickets (Live)</h2>
+      <p class="sub">Echtzeit-Daten aus der Phantom-Datenbank. Aktualisiert sich bei jeder Bot-Aktion.</p>
+
+      {% if tickets %}
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Kanal-ID</th>
+            <th>Owner</th>
+            <th>Status</th>
+            <th>Claimed by</th>
+            <th>Kategorie</th>
+            <th>Erstellt</th>
+            <th>Letzte Aktivität</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in tickets %}
+          <tr>
+            <td><code>{{ t.channel_id }}</code></td>
+            <td><code>{{ t.owner_id }}</code></td>
+            <td>
+              {% if t.status == 'claimed' %}
+              <span class="pill ok">claimed</span>
+              {% else %}
+              <span class="pill warn">open</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if t.claimed_by %}
+                <code>{{ t.claimed_by }}</code>
+              {% else %}
+                <span style="color:#666">—</span>
+              {% endif %}
+            </td>
+            <td>{{ t.category or 'support' }}</td>
+            <td>
+              {% if t.created_at %}
+                <span style="font-size:12px">{{ t.created_at | int | timestamp }}</span>
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              {% if t.last_activity %}
+                <span style="font-size:12px">{{ t.last_activity | int | timestamp }}</span>
+              {% else %}
+                <span style="font-size:12px">{{ t.created_at | int | timestamp }}</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty">Keine offenen Tickets auf diesem Server.</div>
+      {% endif %}
+
+      <div style="margin-top: 20px; font-size: 12px; color: var(--muted);">
+        💡 Tipp: Der Bot synchronisiert automatisch alle Server, auf denen er Mitglied ist. 
+        Nur diese erscheinen hier. <a href="{{ root_path }}/dashboard/guild/{{ guild.id }}" style="color:inherit">Seite neu laden</a> für aktuelle Daten.
+      </div>
+    </main>
+  </div>
+</div>
+{% endblock %}

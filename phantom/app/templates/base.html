@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}{{ brand }}{% endblock %}</title>
+  <link rel="stylesheet" href="{{ root_path }}/static/css/phantom.css" />
+</head>
+<body>
+  {% if flash %}
+  <div class="flash">{{ flash }}</div>
+  {% endif %}
+  {% block body %}{% endblock %}
+  <div class="footer">{{ footer }}</div>
+</body>
+</html>
