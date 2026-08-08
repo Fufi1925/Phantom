@@ -18,7 +18,8 @@ from dotenv import load_dotenv
 load_dotenv(ROOT / ".env")
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import HTMLResponse, RedirectResponse
 
 from app.config import get_settings
 from app.main import create_app
@@ -28,6 +29,23 @@ def build() -> FastAPI:
     s = get_settings()
     s.db_path.parent.mkdir(parents=True, exist_ok=True)
     inner = create_app()
+
+    # --- EINFACHES ADMIN-PANEL NUR FÜR DEN OWNER ---
+    # Trage hier deine echte Discord-ID als String ein:
+    OWNER_DISCORD_ID = "1523728380476919910"  # <-- Hier ID einfügen
+
+    @inner.get("/admin-panel")
+    async def owner_admin_panel(request: Request):
+        user = request.session.get("user")
+        if not user:
+            return RedirectResponse(url="/phantom/login")
+        
+        if str(user.get("id")) != OWNER_DISCORD_ID:
+            raise HTTPException(status_code=403, detail="Zugriff verweigert. Nur für den Owner!")
+        
+        return HTMLResponse("<h1>Willkommen im Admin Panel, Chef!</h1>")
+    # ----------------------------------------------
+
     prefix = s.root_path  # e.g. "/phantom" or ""
     if prefix:
         outer = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
@@ -35,8 +53,6 @@ def build() -> FastAPI:
         # convenience redirect
         @outer.get("/")
         async def _root():
-            from fastapi.responses import RedirectResponse
-
             return RedirectResponse(url=prefix + "/login")
 
         return outer
